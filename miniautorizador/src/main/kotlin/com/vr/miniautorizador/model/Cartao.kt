@@ -1,8 +1,12 @@
 package com.vr.miniautorizador.model
 
-data class Cartoes (
-    val id: String? = null,
-    val numeroCartao: Int,
+import org.springframework.data.annotation.Id
+import org.springframework.data.mongodb.core.mapping.Document
+
+@Document
+data class Cartao (
+    @Id
+    val numeroCartao: Long,
     val senha: String,
     val saldo: Long? = 500
 )
