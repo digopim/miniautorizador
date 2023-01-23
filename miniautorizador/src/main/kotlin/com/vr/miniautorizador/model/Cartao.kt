@@ -8,5 +8,8 @@ data class Cartao (
     @Id
     val numeroCartao: Long,
     val senha: String,
-    val saldo: Long? = 500
-)
+    private val saldo: Long? = 500
+) {
+    fun descontSaldo(value: Long): Long? = saldo?.minus(value)
+    fun checkSaldo(): Long? = saldo
+}

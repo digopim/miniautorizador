@@ -8,28 +8,32 @@ import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
+import java.net.URI
 
 @RestController
 @RequestMapping("/transacoes")
 class TransacaoController (val repository: CartaoRepository){
 
     @PutMapping
-    fun update(@RequestBody transacao: Transacao): ResponseEntity<Cartao> {
-        return if(validate(transacao)) {
+    fun update(@RequestBody transacao: Transacao): ResponseEntity<String> {
+        val validate = validate(transacao)
+        return if(validate.isNullOrEmpty()) {
             val cartao = repository.findById(transacao.numeroCartao).get()
-            ResponseEntity.ok(repository.save(cartao.copy(saldo = cartao.saldo?.minus(transacao.valor))))
+            repository.save(cartao.copy(saldo = cartao.checkSaldo()?.minus(transacao.valor)))
+            ResponseEntity.created(URI.create("Sucesso")).body("")
         } else {
-            ResponseEntity.unprocessableEntity().build()
+            ResponseEntity.unprocessableEntity().body(validate.toString())
         }
     }
 
-    fun validate(transacao: Transacao): Boolean =
-        repository.existsById(transacao.numeroCartao) &&
-        authenticated(transacao.numeroCartao, transacao.senhaCartao) &&
-        authorized(repository.findById(transacao.numeroCartao).get(), transacao.valor)
-
-    fun authenticated(numeroCartao: Long, senha: String): Boolean = repository.findById(numeroCartao).map(Cartao::senha).get() == senha
-
-    fun authorized(cartao: Cartao, valor: Long): Boolean = cartao.saldo?.minus(valor)!! >= 0L
-
+    fun validate(transacao: Transacao): ArrayList<String?> {
+        val validate = arrayListOf<String?>()
+        if(exists(transacao.numeroCartao)!!.not()) validate.add("CARTAO_INEXISTENTE") else
+        if(authenticated(transacao.numeroCartao, transacao.senhaCartao)!!.not()) validate.add("SENHA_INVALIDA") else
+        if(authorized(repository.findById(transacao.numeroCartao).get(), transacao.valor)!!.not()) validate.add("SALDO_INSUFICIENTE")
+        return validate
+    }
+    fun exists(numeroCartao: Long): Boolean? = repository.existsById(numeroCartao)
+    fun authenticated(numeroCartao: Long, senha: String): Boolean? = repository.findById(numeroCartao).map(Cartao::senha).get() == senha
+    fun authorized(cartao: Cartao, valor: Long): Boolean? = cartao.checkSaldo()?.minus(valor)!! >= 0L
 }
