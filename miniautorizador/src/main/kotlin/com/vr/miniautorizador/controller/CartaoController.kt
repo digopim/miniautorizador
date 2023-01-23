@@ -16,7 +16,7 @@ public class CartaoController (val repository: CartaoRepository){
 
     @PostMapping
     fun create(@RequestBody cartao: Cartao) : ResponseEntity<Cartao> {
-        return if(repository.existsById(cartao.numeroCartao)){
+        return if(exists(cartao.numeroCartao)) {
             ResponseEntity.unprocessableEntity().body(cartao)
         } else {
             ResponseEntity.ok(repository.save(cartao))
@@ -34,5 +34,7 @@ public class CartaoController (val repository: CartaoRepository){
             ResponseEntity.notFound().build()
         }
     }
+
+    fun exists(numeroCartao: Long): Boolean = repository.existsById(numeroCartao)
 
 }
